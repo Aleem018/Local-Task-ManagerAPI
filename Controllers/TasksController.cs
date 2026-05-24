@@ -53,6 +53,7 @@ public class TasksController : ControllerBase
         }
     }
 
+    // My Delete method
     [HttpDelete("{id}")]
     public IActionResult KillTask(int id)
     {
@@ -73,6 +74,35 @@ public class TasksController : ControllerBase
         catch (Exception)
         {
             return StatusCode(500, "Access Denied: You do not have permission to kill this task.");
+        }
+    }
+
+    [HttpPost]
+    public IActionResult LaunchTask([FromBody] TaskLaunchRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.ProgramName))
+            {
+                return BadRequest("Program name cannot be empty.");
+            }
+
+            Process newProcess = Process.Start(request.ProgramName);
+
+            if (newProcess != null)
+            {
+                return Ok($"Successfully launched {request.ProgramName} with ID: {newProcess.Id}");
+            }
+
+            return Ok($"Successfully launched {request.ProgramName}.");
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            return NotFound($"Windows could not find a program named '{request.ProgramName}'.");
+        }
+        catch (System.Exception ex)
+        {
+            return StatusCode(500, $"An error occured while launching the program: {ex.Message}");
         }
     }
 }

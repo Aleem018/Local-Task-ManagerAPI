@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OS Task Execution Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1e1e1e; color: #fff; padding: 20px; }
+        .panel { background: #2d2d2d; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        input { padding: 10px; border: none; border-radius: 4px; margin-right: 10px; width: 250px; }
+        button { padding: 10px 15px; background: #0078d4; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #005a9e; }
+        .kill-btn { background: #d13438; padding: 5px 10px; margin-left: 15px; }
+        .kill-btn:hover { background: #a80000; }
+        li { margin-bottom: 10px; font-family: monospace; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+    <div class="panel">
+        <h2>🚀 Launch New Process</h2>
+        <input type="text" id="programInput" placeholder="e.g., calc.exe or notepad.exe">
+        <button onclick="launchProcess()">Execute Task</button>
+    </div>
+
+    <div class="panel">
+        <h2>⚙️ Active System Processes</h2>
+        <button onclick="fetchProcesses()">Refresh List</button>
+        <ul id="processList">
+            </ul>
+    </div>
+
+    <script>
+        // UPDATE THIS PORT to match your backend if it is not 5000
+        const API_URL = "http://localhost:5028/api/tasks";
+
+        // 1. THE GET REQUEST (The Observer)
+        async function fetchProcesses() {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            
+            const listElement = document.getElementById("processList");
+            listElement.innerHTML = ""; // Clear the old list
+
+            // Loop through the C# DTOs and build HTML for each one
+            data.forEach(task => {
+                listElement.innerHTML += `
+                    <li>
+                        [ID: ${task.processId}] ${task.processName} 
+                        <button class="kill-btn" onclick="killProcess(${task.processId})">KILL</button>
+                    </li>
+                `;
+            });
+        }
+
+        // 2. THE POST REQUEST (The Executor)
+        async function launchProcess() {
+            const appName = document.getElementById("programInput").value;
+            
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ programName: appName })
+            });
+            
+            // Wait a second for Windows to boot it, then refresh the list
+            setTimeout(fetchProcesses, 1000); 
+        }
+
+        // 3. THE DELETE REQUEST (The Executioner)
+        async function killProcess(id) {
+            await fetch(`${API_URL}/${id}`, {
+                method: 'DELETE'
+            });
+            
+            fetchProcesses(); // Instantly refresh the UI
+        }
+
+        // Auto-load the list when the page opens
+        fetchProcesses();
+    </script>
+</body>
+</html>
